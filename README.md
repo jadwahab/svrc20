@@ -6,13 +6,13 @@ This proposal introduces a fungible token standard based off of the BRC20<sup>[1
 
 ## Motivation
 
-The purpose of this proposal is to provide a standard that offers the same functionality that BRC20-BTC offers that works on BSV instead of BTC. A guiding motivation behind this standard proposal is to try and keep the standard as simple as possible. 
+The purpose of this proposal is to provide a standard that offers the same functionality that BRC20-BTC offers that works on BSV instead of BTC. A guiding motivation behind this standard proposal is to try and keep the standard as simple as possible.
 
 ## Specification
 
 This specification is meant be as similar to the BTC BRC20 standard so it also follows the 'first is first' approach. In order to deploy or mint a token, the process is almost identical to the protocol on BTC: you would create a transaction output with the data fields below and tranasction are indexed on a 'first is first' approach with duplicates or overflows being invalid and ignored. The main differences between the protocol on BTC and this one is that with this one:
 - the data is just pushed to the stack in different chunks instead of a JSON inscription
-- the UTXO created is a 1 satoshi output but is not in the same format as regular 1-sat-ordinal inscriptions since transfers will work differently than ordinal transfers  
+- the UTXO created is a 1 satoshi output but is not in the same format as regular 1-sat-ordinal inscriptions since transfers will work differently than ordinal transfers
 
 ### Notes
 Following BRC20 on btc:
@@ -38,9 +38,15 @@ In order to deploy an SVRC20 token, you must make sure that that token ticker ha
 
 #### Example
 
-To deploy the `ordi` token, you would create a transaction with an output with the following script:
-```
-OP_FALSE OP_RETURN <BRC20> <deploy> <ordi> <21000000> <1000>
+To deploy the `ordi` token, you would create an inscription with the following json:
+```json
+{ 
+  "p": "brc-20",
+  "op": "deploy",
+  "tick": "ordi",
+  "max": "21000000",
+  "lim": "1000"
+}
 ```
 
 ### Mint
@@ -56,16 +62,21 @@ In order to mint tokens of a specific SVRC20 token, you must make sure that that
 
 #### Example
 
-To mint `ordi` tokens, you would create a transaction with an output with the following script:
-```
-OP_DUP OP_HASH160 f8f21843ff7de63f79f8ac4644dc10e7c99a2583 OP_EQUALVERIFY OP_CHECKSIG OP_RETURN <BRC20> <mint> <ordi> <1000>
+To mint `ordi` tokens, you would create an inscription with the following json:
+```json
+{ 
+  "p": "brc-20",
+  "op": "mint",
+  "tick": "ordi",
+  "amt": "1000"
+}
 ```
 
 ### Transfer
 
-In order to transfer the minted tokens, all you need to do is to spend that specific UTXO and create new outputs the same way you spend a regular Satoshis in UTXO but instead you would use the value in data `amt` field to specify the amount (instead of the Satoshi field in the transaction output) and create as many outputs as needed.  
+In order to transfer the minted tokens, all you need to do is to spend that specific UTXO and create new outputs the same way you spend a regular Satoshis in UTXO but instead you would use the value in data `amt` field to specify the amount (instead of the Satoshi field in the transaction output) and create as many outputs as needed.
 
-If more tokens are created in the outputs than are available in the inputs then the transaction is considered invalid and the tokens are considered burnt. If less tokens are created in the outputs than are available in the intput, then the missing tokens are considered burnt.  
+If more tokens are created in the outputs than are available in the inputs then the transaction is considered invalid and the tokens are considered burnt. If less tokens are created in the outputs than are available in the intput, then the missing tokens are considered burnt.
 
 Using the same procedure as regular Satoshi transfers allows us to benefit from the parallelisation that regular Satoshis in Bitcoin benefit from where you can split a specific UTXO with a large amount into smaller UTXOs and spend those in parallel (the same way you could exchange a $100 bill into $1 bills and spend those in parallel) with no sequential bottlenecks that something like ERC20 sufffers from.
 
@@ -78,13 +89,23 @@ Using the same procedure as regular Satoshi transfers allows us to benefit from 
 
 #### Example
 
-To transfer the `ordi` tokens that you minted as shown above, you would create a transaction spending the minting UTXO (providing the signature and public key normally) with an output (or many) with similar scripts, as shown below:
+To transfer the `ordi` tokens that you minted as shown above, you would create a transaction spending the minting UTXO (providing the signature and public key normally to spend the P2PKH script) with an output (or many) with similar scripts with the following json, as shown below:
 
-| Inputs               | Outputs                                                                                                                         |
-|----------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| Signature Public_key | OP_DUP OP_HASH160 9b5b453039d79ed5bbcea2c5202c12401ad228a7 OP_EQUALVERIFY OP_CHECKSIG OP_RETURN <BRC20> <transfer> <ordi> <100> |
-|                      | OP_DUP OP_HASH160 816768e191f5406b0e7f503f1df4945f8bb890b5 OP_EQUALVERIFY OP_CHECKSIG OP_RETURN <BRC20> <transfer> <ordi> <500> |
-|                      | OP_DUP OP_HASH160 1d2c5d8db97dbf2020570b2f14b263db40dc1c7b OP_EQUALVERIFY OP_CHECKSIG OP_RETURN <BRC20> <transfer> <ordi> <400> |
+To mint `ordi` tokens, you would create an inscription with the following json:
+```json
+{ 
+  "p": "brc-20",
+  "op": "transfer",
+  "tick": "ordi",
+  "amt": "1000"
+}
+```
+
+| Inputs               | Outputs                                                                 |
+|----------------------|-------------------------------------------------------------------------|
+| Signature Public_key (spending mint of 1000 ordis) | inscription(`{"p":"brc-20","op":"transfer","tick":"ordi","amt":"100"}`) |
+|                      | inscription(`{"p":"brc-20","op":"transfer","tick":"ordi","amt":"500"}`) |
+|                      | inscription(`{"p":"brc-20","op":"transfer","tick":"ordi","amt":"400"}`) |
 
 ## Implementations
 
